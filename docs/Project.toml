@@ -1,0 +1,3 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+Homotopy = "ea2b354a-add5-4258-ba82-e4008b03b663"

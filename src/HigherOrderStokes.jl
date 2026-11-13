@@ -124,10 +124,14 @@ to t_l from its left to its right,
 and with the opposite sign when it crosses from right to left (the Laplace contour of j passes
 t_k on the other side; the difference is the Stokes jump of j at t_k, which then jumps at t_l).
 The same event updates K_{j←l} with the roles of j and l exchanged.
+
+With `upto = i`, only the events before the grid point i are applied: the Stokes constants at
+λ = (i - 1)/N, e.g. to draw the adjacency graph midway through the homotopy.
 """
-function higherOrderStokes(K, pathsBorel)
+function higherOrderStokes(K, pathsBorel; upto = length(pathsBorel[1]))
     K = copy(K)
     for e in hosEvents(pathsBorel)
+        e.τ < upto || break
         i = e.i
         for (j, l) in ((e.j, e.l), (e.l, e.j))
             p = pathsBorel

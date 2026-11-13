@@ -7,8 +7,8 @@
 # T0_j = 1/ρ_j with ρ_j² = det Hess f(x_j); changing ρ_j → s_j ρ_j (s_j = ±1) changes
 # K[j, l] → s_j s_l K[j, l].
 #
-# IntegralResurgence.jl uses other conventions: `stokes_constants` returns the transpose of K,
-# and `findStokesConstants` (Borel-Padé) returns -K.
+# IntegralResurgence.jl uses the same convention since version 2 (version 1 returned the
+# transpose of K from `stokes_constants` and -K from `findStokesConstants`).
 
 """
     referenceStokes1D(m)

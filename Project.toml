@@ -1,12 +1,28 @@
 name = "Homotopy"
 uuid = "ea2b354a-add5-4258-ba82-e4008b03b663"
-authors = ["Job Feldbrugge <14946916+jfeldbrugge@users.noreply.github.com> and contributors"]
 version = "1.0.0-DEV"
+authors = ["Job Feldbrugge <14946916+jfeldbrugge@users.noreply.github.com> and contributors"]
+
+[deps]
+Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+
+[weakdeps]
+Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
+
+[extensions]
+HomotopyMakieExt = "Makie"
 
 [compat]
+Combinatorics = "1.1.0"
+ForwardDiff = "1.4.5"
+LinearAlgebra = "1.12.0"
+Makie = "0.24"
 julia = "1.10.10"
 
 [extras]
+Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]

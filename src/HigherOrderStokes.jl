@@ -1,19 +1,24 @@
-# Stokes constants follow the convention of IntegralResurgence.jl: for the integral
-# (k/2πi)^{d/2} ∫ e^{ik f(x)} dx, the Borel singularity of saddle x_j is t_j = -i f(x_j), and
-# K[l, j] = K_{l←j} is the Stokes constant with which the Laplace contour of saddle j crosses t_l.
-# The asymptotic series of saddle j is normalised by T0_j = 1/ρ_j with ρ_j² = det Hess f(x_j).
-# Stokes constants are bilinear in the normalisations: changing ρ_j → s_j ρ_j (s_j = ±1)
-# changes K[l, j] → s_l s_j K[l, j].
+# Sign convention of the Stokes constants (as in the paper "Evaluating Stokes Constants with
+# Homotopy Continuation"): K[j, l] = K_jl is the Stokes constant with which the asymptotic series
+# of saddle j sees the Borel singularity of saddle l, as in the resurgence identity
+#     T_N^(j) ~ 1/(2πi) Σ_l Σ_m K_jl (N - m - 1)!/F_jl^(N-m) T_m^(l),   F_jl = t_l - t_j,
+# for the series Ψ^(j) ~ e^{-k t_j} Σ_m T_m^(j)/k^m. For the integral (k/2πi)^{d/2} ∫ e^{ik f(x)} dx
+# the Borel singularity of saddle x_j is t_j = -i f(x_j). The series of saddle j is normalised by
+# T0_j = 1/ρ_j with ρ_j² = det Hess f(x_j); changing ρ_j → s_j ρ_j (s_j = ±1) changes
+# K[j, l] → s_j s_l K[j, l].
+#
+# IntegralResurgence.jl uses other conventions: `stokes_constants` returns the transpose of K,
+# and `findStokesConstants` (Borel-Padé) returns -K.
 
 """
     referenceStokes1D(m)
 
 Stokes constants of the reference exponent g(x) = x^m/m - x for the saddles e_n = e^{2πin/(m-1)},
 n = 0, …, m-2, with the continuous normalisation ρ_n = √(m-1) e^{-iπn/(m-1)} (ρ_n² = g''(e_n)):
-K[l, j] = sign(l - j). Checked against the Gauss-Manin Stokes constants of IntegralResurgence.jl
-for m = 3, …, 7. The constants are unchanged when g is multiplied by a phase c, with ρ_n → √c ρ_n.
+K[j, l] = sign(l - j). Checked against the Gauss-Manin Stokes constants of IntegralResurgence.jl
+for m = 3, …, 7, and against the large-order relation of the series for m = 3. The constants are unchanged when g is multiplied by a phase c, with ρ_n → √c ρ_n.
 """
-referenceStokes1D(m) = [sign(l - j) for l in 1:m-1, j in 1:m-1]
+referenceStokes1D(m) = [sign(l - j) for j in 1:m-1, l in 1:m-1]
 
 """
     initialSaddles(M)
@@ -34,7 +39,7 @@ function initialSaddles(M)
         differ = findall(a .!= b)
         if length(differ) == 1
             i = differ[1]
-            K[l, j] = K1[i][b[i] + 1, a[i] + 1]
+            K[j, l] = K1[i][a[i] + 1, b[i] + 1]
         end
     end
 
@@ -80,64 +85,86 @@ end
 "Signed area of t_k relative to the directed segment t_j → t_l: > 0 when t_k lies on its left."
 side(tj, tk, tl) = imag(conj(tl - tj) * (tk - tj))
 
-"""
-Higher-order Stokes events: instants (between the grid points i and i+1) at which the Borel
-singularity t_k crosses the segment between t_j and t_l. Returns named tuples (τ, j, k, l) with τ
-the interpolated crossing time, sorted by τ.
-"""
-function hosEvents(pathsBorel)
-    n = length(pathsBorel)
-    triples = collect(combinations(1:n, 3))
-    found = [Vector{NamedTuple{(:τ, :i, :j, :k, :l), Tuple{Float64, Int, Int, Int, Int}}}() for _ in 1:Threads.maxthreadid()]
-    nonzero(x) = !iszero(x) && !isnan(x)
-    Threads.@threads for tr in triples
-        a, b, c = pathsBorel[tr[1]], pathsBorel[tr[2]], pathsBorel[tr[3]]
-        any(isnan, (a[1], b[1], c[1])) && continue
-        area = imag.((b .- a) .* conj.(c .- a))
-        for cr in zero_crossings(area)
-            # the sign changes between the nonzero areas at i1 and i2 (exact zeros in between are skipped)
-            i2 = cr + 1
-            i1 = findprev(nonzero, area, cr)
-            τ = i1 + area[i1] / (area[i1] - area[i2]) * (i2 - i1)
-            w = τ - floor(τ); i0 = floor(Int, τ)
-            z = [(1 - w) * p[i0] + w * p[min(i0 + 1, length(p))] for p in (a, b, c)]
+const HOSEvent = NamedTuple{(:τ, :i, :j, :k, :l), Tuple{Float64, Int, Int, Int, Int}}
+
+# Crossings of one triple (a, b, c) of tracks: sign changes of the signed area between consecutive
+# nonzero values (exact zeros and NaNs, i.e. tracks gone to infinity, are skipped), without
+# allocating the area along the whole track.
+function tripleEvents!(found, a, b, c, ia, ib, ic)
+    last, area_last = 0, 0.0
+    for i in eachindex(a)
+        area = imag((b[i] - a[i]) * conj(c[i] - a[i]))
+        (iszero(area) || isnan(area)) && continue
+        if last != 0 && (area > 0) != (area_last > 0)
+            τ = last + area_last / (area_last - area) * (i - last)
+            w = τ - floor(τ); i0 = floor(Int, τ); i1 = min(i0 + 1, length(a))
+            za = (1 - w) * a[i0] + w * a[i1]
+            zb = (1 - w) * b[i0] + w * b[i1]
+            zc = (1 - w) * c[i0] + w * c[i1]
             # the middle point lies inside the segment of the other two
-            for (m, e1, e2) in ((2, 1, 3), (1, 2, 3), (3, 1, 2))
-                s = real(conj(z[e2] - z[e1]) * (z[m] - z[e1])) / abs2(z[e2] - z[e1])
+            for (zm, z1, z2, m, e1, e2) in ((zb, za, zc, ib, ia, ic), (za, zb, zc, ia, ib, ic), (zc, za, zb, ic, ia, ib))
+                s = real(conj(z2 - z1) * (zm - z1)) / abs2(z2 - z1)
                 if 0 < s < 1
-                    push!(found[Threads.threadid()], (τ = τ, i = i1, j = tr[e1], k = tr[m], l = tr[e2]))
+                    push!(found, (τ = τ, i = last, j = e1, k = m, l = e2))
                     break
                 end
             end
         end
+        last, area_last = i, area
     end
-    sort(reduce(vcat, found), by = e -> e.τ)
+    found
 end
 
 """
-    higherOrderStokes(K, pathsBorel)
+    hosEvents(pathsBorel)
 
-Continue the Stokes constants K (K[l, j] = K_{l←j}, normalisations continuous along the paths)
-through the higher-order Stokes phenomena of the homotopy. When t_k crosses the segment from t_j
-to t_l from its left to its right,
-    K_{l←j} ↦ K_{l←j} + K_{k←j} K_{l←k},
-and with the opposite sign when it crosses from right to left (the Laplace contour of j passes
-t_k on the other side; the difference is the Stokes jump of j at t_k, which then jumps at t_l).
-The same event updates K_{j←l} with the roles of j and l exchanged.
+Higher-order Stokes events: instants (between the grid points i and i+1) at which the Borel
+singularity t_k crosses the segment between t_j and t_l. Returns named tuples (τ, i, j, k, l)
+with τ the interpolated crossing time and i the last grid point before it, sorted by τ.
+
+The scan visits every triple of tracks, which grows as n³ with the number n of tracks: compute
+the events once and pass them to `higherOrderStokes` (keyword `events`) for every λ.
+"""
+function hosEvents(pathsBorel)
+    n = length(pathsBorel)
+    found = [HOSEvent[] for _ in 1:n]                    # one list per first index: no data race
+    alive = [!isnan(p[1]) for p in pathsBorel]
+    Threads.@threads :dynamic for ia in 1:n
+        alive[ia] || continue
+        for ib in ia+1:n, ic in ib+1:n
+            alive[ib] && alive[ic] || continue
+            tripleEvents!(found[ia], pathsBorel[ia], pathsBorel[ib], pathsBorel[ic], ia, ib, ic)
+        end
+    end
+    sort!(reduce(vcat, found), by = e -> e.τ)
+end
+
+"""
+    higherOrderStokes(K, pathsBorel; upto = length(pathsBorel[1]), events = hosEvents(pathsBorel))
+
+Continue the Stokes constants K (K[j, l] = K_jl, normalisations continuous along the paths)
+through the higher-order Stokes phenomena of the homotopy. When t_k crosses the directed segment
+from t_j to t_l from its left to its right,
+    K_jl ↦ K_jl + K_jk K_kl,
+and with the opposite sign when it crosses from right to left (the Borel transform of the series
+of j passes t_k on the other side; the difference is the Stokes jump of j at t_k, which then sees
+t_l). The same event updates K_lj with the roles of j and l exchanged.
 
 With `upto = i`, only the events before the grid point i are applied: the Stokes constants at
-λ = (i - 1)/N, e.g. to draw the adjacency graph midway through the homotopy.
+λ = (i - 1)/N, e.g. to draw the adjacency graph midway through the homotopy. The scan for the
+events dominates the cost for many tracks; pass the events of `hosEvents` (or the field `events`
+returned by `stokesHomotopy`) to reuse them for several values of `upto`.
 """
-function higherOrderStokes(K, pathsBorel; upto = length(pathsBorel[1]))
+function higherOrderStokes(K, pathsBorel; upto = length(pathsBorel[1]), events = hosEvents(pathsBorel))
     K = copy(K)
-    for e in hosEvents(pathsBorel)
+    for e in events
         e.τ < upto || break
         i = e.i
         for (j, l) in ((e.j, e.l), (e.l, e.j))
             p = pathsBorel
             before = side(p[j][i], p[e.k][i], p[l][i])
             σ = before > 0 ? 1 : -1                       # left → right: +, right → left: -
-            K[l, j] += σ * K[e.k, j] * K[l, e.k]
+            K[j, l] += σ * K[j, e.k] * K[e.k, l]
         end
     end
     return K
@@ -152,10 +179,13 @@ saddles of g move along h(x, λ) = λ f(x) + γ(1 - λ) g(x) into the saddles of
 and the Stokes constants change at every higher-order Stokes phenomenon on the way.
 
 Returns a named tuple with the saddle points `x` of f that are reached, their Borel singularities
-`Σ = -i f(x)`, the Stokes constants `K` (K[l, j] = K_{l←j}, as `stokes_constants` of
-IntegralResurgence.jl) for the normalisations `T0` of the series (see `seriesNormalisation`), and
+`Σ = -i f(x)`, the Stokes constants `K` (K[j, l] = K_jl, the constant with which the series of
+saddle j sees the Borel singularity of saddle l) for the normalisations `T0` of the series (see `seriesNormalisation`), and
 the tracked `paths`, `pathsBorel` and continuous normalisations `ρs` of all reference saddles, with
-`finite` the indices of the paths that reach f.
+`finite` the indices of the paths that reach f. The higher-order Stokes `events` of the homotopy
+and the Stokes constants `K0` of the reference saddles are returned as well, so that
+`higherOrderStokes(r.K0, r.pathsBorel; upto = i, events = r.events)` gives the Stokes constants at
+any λ without a new scan.
 """
 function stokesHomotopy(f, M; c = goldenPhases(length(M)), γ = DEFAULT_γ, N = 10000, escape = 1e6,
                         normalisation = :morse)
@@ -164,7 +194,8 @@ function stokesHomotopy(f, M; c = goldenPhases(length(M)), γ = DEFAULT_γ, N = 
     # ρ² = det Hess(γ g) = γ^d Πᵢ cᵢ g''; the common factor √(γ^d Πᵢ cᵢ) does not affect K
     ρ0 = sqrt(γ)^length(M) * prod(sqrt.(c)) .* ρ0
     paths, pathsBorel, ρs = followHomotopy(saddles, [f, g], N, γ; ρ0 = ρ0, escape = escape)
-    K = higherOrderStokes(K0, pathsBorel)
+    events = hosEvents(pathsBorel)
+    K = higherOrderStokes(K0, pathsBorel; events)
 
     finite = [i for i in eachindex(paths) if all(isfinite, paths[i][end])]
     x = [refineSaddle(f, paths[i][end], 1e-13)[1] for i in finite]
@@ -174,7 +205,7 @@ function stokesHomotopy(f, M; c = goldenPhases(length(M)), γ = DEFAULT_γ, N = 
     s = [round(Int, real(ρf[a] / ρs[i][end])) for (a, i) in pairs(finite)]
     Kf = [s[a] * s[b] * K[finite[a], finite[b]] for a in eachindex(finite), b in eachindex(finite)]
 
-    return (; x, Σ, K = Kf, T0 = 1 ./ ρf, paths, pathsBorel, ρs, finite, Kfull = K)
+    return (; x, Σ, K = Kf, T0 = 1 ./ ρf, paths, pathsBorel, ρs, finite, Kfull = K, K0, events)
 end
 
 """

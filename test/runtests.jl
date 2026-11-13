@@ -4,9 +4,9 @@ using Test
 
 @testset "Homotopy.jl" begin
     @testset "reference system" begin
-        # x^m/m - x: K[l, j] = sign(l - j) in the continuous normalisation (checked against the
+        # x^m/m - x: K[j, l] = sign(l - j) in the continuous normalisation (checked against the
         # Gauss-Manin Stokes constants of IntegralResurgence.jl for m = 3, ..., 7)
-        @test referenceStokes1D(4) == [0 -1 -1; 1 0 -1; 1 1 0]
+        @test referenceStokes1D(4) == [0 1 1; -1 0 1; -1 -1 0]
 
         # 1D: all saddles mutually adjacent, ρ² = g''
         saddles, K, ρ = initialSaddles([5])
@@ -44,16 +44,16 @@ using Test
         p1 = fill(0.0 + 0.0im, N + 1)
         p3 = fill(2.0 + 0.0im, N + 1)
         p2 = [1.0 + (0.5 - i / N) * im for i in 0:N]
-        K = [0 1 0; 2 0 1; 0 3 0]                                   # K[l, j] = K_{l←j}
+        K = [0 2 0; 1 0 3; 0 1 0]                                   # K[j, l] = K_jl
         K2 = higherOrderStokes(K, [p1, p2, p3])
-        @test K2[3, 1] == 0 + K[2, 1] * K[3, 2]                      # left → right: +
-        @test K2[1, 3] == 0 - K[2, 3] * K[1, 2]                      # seen from t_3: right → left
-        @test all(K2[l, j] == K[l, j] for (l, j) in ((2, 1), (1, 2), (2, 3), (3, 2)))
+        @test K2[1, 3] == 0 + K[1, 2] * K[2, 3]                      # left → right: +
+        @test K2[3, 1] == 0 - K[3, 2] * K[2, 1]                      # seen from t_3: right → left
+        @test all(K2[j, l] == K[j, l] for (j, l) in ((1, 2), (2, 1), (2, 3), (3, 2)))
     end
 
     @testset "Pearcey: Stokes constants from the homotopy" begin
         # f = q^4 + q^2/2 + q; ground truth from IntegralResurgence.stokes_constants
-        # (T0 = principal 1/√f'', K[l, j] = K_{l←j}), saddles ordered by their Borel singularity
+        # (T0 = principal 1/√f'', transposed to K[j, l] = K_jl), saddles ordered by their Borel singularity
         f(p) = p[1]^4 + p[1]^2 / 2 + p[1]
         r = stokesHomotopy(f, [4]; N = 2000)
         @test length(r.finite) == 3
@@ -62,6 +62,11 @@ using Test
         perm = [argmin(abs.(r.Σ .- σ)) for σ in Σref]
         @test allunique(perm)
         @test maximum(abs, r.Σ[perm] .- Σref) < 1e-8
-        @test r.K[perm, perm] == [0 1 -1; -1 0 -1; 1 1 0]
+        @test r.K[perm, perm] == [0 -1 1; 1 0 1; -1 -1 0]
+
+        # cached events: the same Stokes constants at λ = 1, and the reference constants at λ = 0
+        @test higherOrderStokes(r.K0, r.pathsBorel; events = r.events) == r.Kfull
+        @test higherOrderStokes(r.K0, r.pathsBorel; upto = 1, events = r.events) == r.K0
+        @test issorted(r.events, by = e -> e.τ)
     end
 end

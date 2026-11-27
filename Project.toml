@@ -19,7 +19,7 @@ Combinatorics = "1.1.0"
 ForwardDiff = "1.4.5"
 LinearAlgebra = "1.12.0"
 Makie = "0.24"
-julia = "1.10.10"
+julia = "1.12"
 
 [extras]
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"

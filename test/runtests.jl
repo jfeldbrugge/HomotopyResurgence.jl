@@ -1,8 +1,8 @@
-using Homotopy
+using HomotopyResurgence
 using LinearAlgebra
 using Test
 
-@testset "Homotopy.jl" begin
+@testset "HomotopyResurgence.jl" begin
     @testset "reference system" begin
         # x^m/m - x: K[j, l] = sign(l - j) in the continuous normalisation (checked against the
         # Gauss-Manin Stokes constants of IntegralResurgence.jl for m = 3, ..., 7)
@@ -31,11 +31,11 @@ using Test
     end
 
     @testset "zero_crossings" begin
-        @test Homotopy.zero_crossings([1.0, -1.0]) == [1]
-        @test Homotopy.zero_crossings([1.0, 0.0, -1.0]) == [2]   # one event, not two
-        @test Homotopy.zero_crossings([1.0, 0.0, 1.0]) == Int[]  # touch, no crossing
-        @test Homotopy.zero_crossings([1.0, 2.0, 3.0]) == Int[]
-        @test Homotopy.zero_crossings([1.0, NaN, NaN]) == Int[]  # path gone to infinity
+        @test HomotopyResurgence.zero_crossings([1.0, -1.0]) == [1]
+        @test HomotopyResurgence.zero_crossings([1.0, 0.0, -1.0]) == [2]   # one event, not two
+        @test HomotopyResurgence.zero_crossings([1.0, 0.0, 1.0]) == Int[]  # touch, no crossing
+        @test HomotopyResurgence.zero_crossings([1.0, 2.0, 3.0]) == Int[]
+        @test HomotopyResurgence.zero_crossings([1.0, NaN, NaN]) == Int[]  # path gone to infinity
     end
 
     @testset "higher-order Stokes rule" begin

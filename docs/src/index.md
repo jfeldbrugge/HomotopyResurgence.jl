@@ -1,14 +1,14 @@
 ```@meta
-CurrentModule = Homotopy
+CurrentModule = HomotopyResurgence
 ```
 
-# Homotopy
+# HomotopyResurgence
 
-Documentation for [Homotopy](https://github.com/jfeldbrugge/Homotopy.jl).
+Documentation for [HomotopyResurgence](https://github.com/jfeldbrugge/HomotopyResurgence.jl).
 
 ```@index
 ```
 
 ```@autodocs
-Modules = [Homotopy]
+Modules = [HomotopyResurgence]
 ```

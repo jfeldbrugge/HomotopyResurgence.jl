@@ -1,4 +1,4 @@
-name = "Homotopy"
+name = "HomotopyResurgence"
 uuid = "ea2b354a-add5-4258-ba82-e4008b03b663"
 version = "1.0.0-DEV"
 authors = ["Job Feldbrugge <14946916+jfeldbrugge@users.noreply.github.com> and contributors"]
@@ -12,7 +12,7 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 
 [extensions]
-HomotopyMakieExt = "Makie"
+HomotopyResurgenceMakieExt = "Makie"
 
 [compat]
 Combinatorics = "1.1.0"

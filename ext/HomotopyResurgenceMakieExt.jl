@@ -1,10 +1,10 @@
-module HomotopyMakieExt
+module HomotopyResurgenceMakieExt
 
-# Makie methods of the plotting functions declared in Homotopy (src/Plots.jl). The extension loads
+# Makie methods of the plotting functions declared in HomotopyResurgence (src/Plots.jl). The extension loads
 # with Makie, i.e. as soon as the user loads a backend such as CairoMakie or GLMakie.
 
-using Homotopy, Makie
-import Homotopy: plotHomotopy
+using HomotopyResurgence, Makie
+import HomotopyResurgence: plotHomotopy
 
 function plotHomotopy(pathsBorel, K, plotRange = 1, index = length(pathsBorel[1]); labels = true,
                       legend = length(pathsBorel) ≤ 10)

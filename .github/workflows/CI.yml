@@ -67,6 +67,6 @@ jobs:
         shell: julia --project=docs --color=yes {0}
         run: |
           using Documenter: DocMeta, doctest
-          using Homotopy
-          DocMeta.setdocmeta!(Homotopy, :DocTestSetup, :(using Homotopy); recursive=true)
-          doctest(Homotopy)
+          using HomotopyResurgence
+          DocMeta.setdocmeta!(HomotopyResurgence, :DocTestSetup, :(using HomotopyResurgence); recursive=true)
+          doctest(HomotopyResurgence)

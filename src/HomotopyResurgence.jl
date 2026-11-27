@@ -1,4 +1,4 @@
-module Homotopy
+module HomotopyResurgence
     using LinearAlgebra, ForwardDiff, Combinatorics, Base.Threads
 
     include("HomotopyContinuation.jl")
@@ -11,7 +11,7 @@ module Homotopy
     # Calling a plotting function without a Makie backend gives a MethodError; point to the extension.
     function __init__()
         Base.Experimental.register_error_hint(MethodError) do io, exc, argtypes, kwargs
-            if exc.f isa Function && nameof(exc.f) in MAKIE_FUNCTIONS && isnothing(Base.get_extension(Homotopy, :HomotopyMakieExt))
+            if exc.f isa Function && nameof(exc.f) in MAKIE_FUNCTIONS && isnothing(Base.get_extension(HomotopyResurgence, :HomotopyResurgenceMakieExt))
                 print(io, "\n\n", nameof(exc.f), " needs a Makie backend. Load one first, e.g. `using CairoMakie`.")
             end
         end

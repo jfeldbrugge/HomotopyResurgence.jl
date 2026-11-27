@@ -1,4 +1,4 @@
-# Plotting. The methods live in the package extension ext/HomotopyMakieExt.jl, which loads with
+# Plotting. The methods live in the package extension ext/HomotopyResurgenceMakieExt.jl, which loads with
 # Makie: run `using CairoMakie` (or GLMakie) to enable them. Without a Makie backend the functions
 # exist but have no methods, and calling them prints a hint (see `__init__`).
 

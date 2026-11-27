@@ -1,14 +1,14 @@
-using Homotopy
+using HomotopyResurgence
 using Documenter
 
-DocMeta.setdocmeta!(Homotopy, :DocTestSetup, :(using Homotopy); recursive=true)
+DocMeta.setdocmeta!(HomotopyResurgence, :DocTestSetup, :(using HomotopyResurgence); recursive=true)
 
 makedocs(;
-    modules=[Homotopy],
+    modules=[HomotopyResurgence],
     authors="Job Feldbrugge <14946916+jfeldbrugge@users.noreply.github.com> and contributors",
-    sitename="Homotopy.jl",
+    sitename="HomotopyResurgence.jl",
     format=Documenter.HTML(;
-        canonical="https://jfeldbrugge.github.io/Homotopy.jl",
+        canonical="https://jfeldbrugge.github.io/HomotopyResurgence.jl",
         edit_link="main",
         assets=String[],
     ),
@@ -18,6 +18,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/jfeldbrugge/Homotopy.jl",
+    repo="github.com/jfeldbrugge/HomotopyResurgence.jl",
     devbranch="main",
 )

@@ -96,3 +96,5 @@ When using this code in work, please cite
   url = {https://github.com/jfeldbrugge/HomotopyResurgence.jl}
 }
 ```
+
+

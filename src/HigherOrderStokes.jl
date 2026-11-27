@@ -75,6 +75,13 @@ function zero_crossings(x)
     return crossings
 end
 
+"""
+    findColinear(z1, z2, z3)
+
+Grid indices and parameters λ at which three tracks z1, z2, z3 of Borel singularities (on the grid
+λ = 0, 1/N, ..., 1) become collinear: the zero crossings of the signed area Im[(z2 - z1) conj(z3 - z1)].
+Returns `(indices, λs)`. A collinearity with z2 between z1 and z3 is a higher-order Stokes phenomenon.
+"""
 function findColinear(z1, z2, z3)
     δλ = 1 / (length(z1) - 1)
     volume = imag((z2 .- z1) .* conj.(z3 - z1))

@@ -5,3 +5,6 @@ HomotopyResurgence = "ea2b354a-add5-4258-ba82-e4008b03b663"
 
 [sources]
 HomotopyResurgence = {path = ".."}
+
+[compat]
+CairoMakie = "0.15.17"
